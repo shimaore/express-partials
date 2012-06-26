@@ -42,7 +42,6 @@ app.get('/collection/thing',function(req,res,next){
   res.render('collection.ejs',{name: 'thing', list:[{name:'one'},{name:'two'}]})
 })
 
-/* Use `register` to substitute the file extension. */
 app.engine('.j',require('jade').__express);
 app.get('/register/no-layout',function(req,res,next){
   res.render('index.j',{hello:'world',layout:false})
@@ -171,34 +170,7 @@ describe('app',function(){
   })
 
   describe('GET /register',function(){
-    it('should render index.j as a Jade template with layout.j as Jade layout (register: function)',function(done){
-      partials.register('.j',require('jade').render);
-      request(app)
-        .get('/register')
-        .end(function(res){
-          res.should.have.status(200);
-          res.body.should.equal('<html><head><title>Jade layout</title></head><body><h2>Jade says hello world</h2></body></html>');
-          done();
-        })
-    })
-  })
-
-  describe('GET /register',function(){
-    it('should render index.j as a Jade template with layout.j as Jade layout (register: module)',function(done){
-      partials.register('.j',require('jade'));
-      request(app)
-        .get('/register')
-        .end(function(res){
-          res.should.have.status(200);
-          res.body.should.equal('<html><head><title>Jade layout</title></head><body><h2>Jade says hello world</h2></body></html>');
-          done();
-        })
-    })
-  })
-
-  describe('GET /register',function(){
-    it('should render index.j as a Jade template with layout.j as Jade layout (register: name)',function(done){
-      partials.register('.j','jade');
+    it('should render index.j as a Jade template with layout.j as Jade layout',function(done){
       request(app)
         .get('/register')
         .end(function(res){
@@ -211,7 +183,6 @@ describe('app',function(){
 
   describe('GET /register/no-layout',function(){
     it('should render index.j as a Jade template (using only Express 3.x)',function(done){
-      partials.register('.j',{});
       request(app)
         .get('/register/no-layout')
         .end(function(res){

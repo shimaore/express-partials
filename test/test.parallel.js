@@ -9,7 +9,6 @@ app1.use(partials1);
 app1.set('views',__dirname + '/fixtures/ejs')
 app1.set('view engine','html')
 app1.engine('html',require('ejs').__express)
-partials1.register('html','ejs')
 
 app1.get('/',function(req,res,next){
   res.render('index.html',{hello:'world'})
@@ -22,7 +21,6 @@ app2.use(partials2);
 app2.set('views',__dirname + '/fixtures/jade')
 app2.set('view engine','html')
 app2.engine('html',require('jade').__express)
-partials2.register('html','jade')
 app2.get('/',function(req,res,next){
   res.render('index.html',{hello:'world'})
 })

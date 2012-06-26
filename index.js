@@ -1,9 +1,6 @@
 var path = require('path')
-  , exists = path.existsSync
-  , resolve = path.resolve
   , extname = path.extname
-  , basename = path.basename
-  , fs = require('fs');
+  , basename = path.basename;
 
 
 /**
@@ -17,10 +14,6 @@ var path = require('path')
  *      , partials = require('express-partials')
  *      , app = express();
  *    app.use(partials());
- *    // three ways to register a template engine:
- *    partials.register('coffee','coffeekup');
- *    partials.register('coffee',require('coffeekup'));
- *    partials.register('coffee',require('coffeekup').render);
  *    app.get('/',function(req,res,next){
  *      res.render('index.ejs') // renders layout.ejs with index.ejs as `body`.
  *    })
@@ -32,94 +25,6 @@ var path = require('path')
  */
 
 module.exports = function(){
-  var r = function(req,res,next){
-    // res.partial(view,options) -> res.render() (ignores any layouts)
-    res.partial = res.render;
-
-    // in template partial(view,options)
-    res.locals.partial = partial.bind(res);
-
-    // layout support
-    var _render = res.render.bind(res);
-    res.render = function(name, options, fn){
-      var layout = options && options.layout;
-
-      // default layout
-      if( layout === true || layout === undefined )
-        layout = 'layout';
-      
-      // layout
-      if( layout ){
-        // first render normally
-        _render(name, options, function(err, body){
-          if( err )
-            return fn ? fn(err) : req.next(err);
-
-          options = options || {};
-          options.body = body;
-
-          // now render the layout
-          var ext = extname(name) || '.'+(res.app.get('view engine') || 'ejs');
-          _render(basename(layout,ext)+ext, options, fn);
-        })
-
-      // no layout
-      } else {
-        _render(name, options, fn);
-      }
-    }
-
-    // done
-    next();
-  };
-
-/*** 
- * Allow to register a specific rendering
- * function for a given extension.
- * (Similar to Express 2.x register() function.)
- *
- * The second argument might be:
- *   a template module's name
- *   a module with a `render` method
- *   a synchronous `render` method
- */
-
-var register = function(ext,render) {
-  if(ext[0] !== '.') {
-    ext = '.' + ext;
-  }
-  if(typeof render === 'string') {
-    render = require(render);
-  }
-  if(render.render !== null) {
-    register[ext] = render.render;
-  } else {
-    register[ext] = render;
-  }
-};
-
-r.register = register;
-
-/**
- * Automatically assign a render() function
- * from a module of the same name if none
- * has been registered.
- */
-
-var renderer = function(ext) {
-  if(ext[0] !== '.') {
-    ext = '.' + ext;
-  }
-  return register[ext] != null
-    ? register[ext]
-    : register[ext] = require(ext.slice(1)).render;
-};
-
-r.renderer = renderer;
-
-/**
- * Memory cache for resolved object names.
- */
 
 var cache = {};
 
@@ -151,44 +56,7 @@ var resolveObjectName = function(view){
     }).join(''));
 };
 
-/**
- * Lookup:
- *
- *   - partial `_<name>`
- *   - any `<name>/index`
- *   - non-layout `../<name>/index`
- *   - any `<root>/<name>`
- *   - partial `<root>/_<name>`
- *
- * @param {View} view
- * @return {String}
- * @api private
- */
-
-var lookup = function(root, view, ext){
-  var name = resolveObjectName(view);
-
-  // Try _ prefix ex: ./views/_<name>.jade
-  // taking precedence over the direct path
-  view = resolve(root,'_'+name+ext)
-  if( exists(view) ) return view;
-
-  // Try index ex: ./views/user/index.jade
-  view = resolve(root,name,'index'+ext);
-  if( exists(view) ) return view;
-
-  // Try ../<name>/index ex: ../user/index.jade
-  // when calling partial('user') within the same dir
-  view = resolve(root,'..',name,'index'+ext);
-  if( exists(view) ) return view;
-
-  // Try root ex: <root>/user.jade
-  view = resolve(root,name+ext);
-  if( exists(view) ) return view;
-
-  return null;
-};
-
+  return function(req,res,next){
 
 /**
  * Render `view` partial with the given `options`. Optionally a
@@ -209,11 +77,12 @@ var lookup = function(root, view, ext){
  *
  * @param  {String} view
  * @param  {Object|Array} options, collection or object
+ * @param  {Function} callback
  * @return {String}
  * @api public
  */
 
-var partial = function(view, options){
+var partial = function(view, options,next){
   var collection
     , object
     , locals
@@ -259,14 +128,6 @@ var partial = function(view, options){
   // extract object name from view
   name = options.as || resolveObjectName(view);
 
-  // find view
-  var root = this.app.get('views') || process.cwd() + '/views'
-    , ext = extname(view) || '.' + (this.app.get('view engine')||'ejs')
-    , file = lookup(root, view, ext);
-  
-  // read view
-  var source = fs.readFileSync(file,'utf8');
-
   // render partial
   function render(){
     if (object) {
@@ -277,16 +138,17 @@ var partial = function(view, options){
         // merge(options, object);
       }
     }
-    return renderer(ext)(source, options);
+    render(source, options);
   }
 
   // Collection support
   if (collection) {
     var len = collection.length
-      , buf = ''
       , keys
       , key
       , val;
+
+    var _next = next;
 
     if ('number' == typeof len || Array.isArray(collection)) {
       options.collectionLength = len;
@@ -296,7 +158,12 @@ var partial = function(view, options){
         options.indexInCollection = i;
         options.lastInCollection = i == len - 1;
         object = val;
-        buf += render();
+        _next = function(err,buf) {
+          if(err) next(err);
+          res.partial(view,options,function(err,str) {
+            _next(err,buf+str);
+          });
+        };
       }
     } else {
       keys = Object.keys(collection);
@@ -311,15 +178,57 @@ var partial = function(view, options){
         options.indexInCollection = i;
         options.lastInCollection = i == len - 1;
         object = val;
-        buf += render();
+        _next = function(err,buf) {
+          if(err) next(err);
+          res.partial(view,options,function(err,str) {
+            _next(err,buf+str);
+          });
+        }
       }
     }
-
-    return buf;
+    _next(null,'');
   } else {
-    return render();
+    res.partial(view,options,next);
   }
 };
 
-  return r;
+    // res.partial(view,options) -> res.render() (ignores any layouts)
+    res.partial = res.render;
+
+    // in template partial(view,options)
+    res.locals.partial = partial.bind(res);
+
+    // layout support
+    var _render = res.render.bind(res);
+    res.render = function(name, options, fn){
+      var layout = options && options.layout;
+
+      // default layout
+      if( layout === true || layout === undefined )
+        layout = 'layout';
+
+      // layout
+      if( layout ){
+        // first render normally
+        _render(name, options, function(err, body){
+          if( err )
+            return fn ? fn(err) : req.next(err);
+
+          options = options || {};
+          options.body = body;
+
+          // now render the layout
+          var ext = extname(name) || '.'+(res.app.get('view engine') || 'ejs');
+          _render(basename(layout,ext)+ext, options, fn);
+        })
+
+      // no layout
+      } else {
+        _render(name, options, fn);
+      }
+    }
+
+    // done
+    next();
+  };
 }
