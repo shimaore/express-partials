@@ -1,11 +1,14 @@
 {
-  "author": "Robert Sköld <robert@publicclass.se> (http://publicclass.se)",
-  "name": "express-partials",
+  "author": "Stephane Alnet <stephane@shimaore.net>",
+  "name": "zappajs-partials",
   "description": "Express 3.x Layout & Partial support.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "repository": {
-    "url": "https://github.com/publicclass/express-partials"
+    "url": "https://github.com/shimaore/express-partials"
   },
+  "original-author": [
+    "Robert Sköld <robert@publicclass.se> (http://publicclass.se)"
+  ],
   "engines": {
     "node": "*"
   },
