@@ -18,9 +18,9 @@ var path = require('path')
  *      , app = express();
  *    app.use(partials());
  *    // three ways to register a template engine:
- *    partials.register('coffee','coffeekup');
- *    partials.register('coffee',require('coffeekup'));
- *    partials.register('coffee',require('coffeekup').render);
+ *    partials.register('coffee','coffeecup');
+ *    partials.register('coffee',require('coffeecup'));
+ *    partials.register('coffee',require('coffeecup').render);
  *    app.get('/',function(req,res,next){
  *      res.render('index.ejs') // renders layout.ejs with index.ejs as `body`.
  *    })
