@@ -2,7 +2,7 @@
   "author": "Stephane Alnet <stephane@shimaore.net>",
   "name": "zappajs-partials",
   "description": "Express 3.x Layout & Partial support.",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "repository": {
     "url": "https://github.com/shimaore/express-partials"
   },
